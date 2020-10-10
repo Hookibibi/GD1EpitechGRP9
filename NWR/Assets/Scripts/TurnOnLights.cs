@@ -2,6 +2,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class TurnOnLights : MonoBehaviour
 {
@@ -9,16 +10,35 @@ public class TurnOnLights : MonoBehaviour
     private bool lightActive;
     public GameObject globalLight;
     public GameObject pointLight;
-    public float startDuration = 15;
+    public float startDuration;
     private float timeRemaining;
     private bool lampTurnon;
     public AudioSource audioSource;
+
+    public Text lightTime;
     // Start is called before the first frame update
     void Start()
     {
-        lampTurnon = true;
-        lightActive = false;
-        timeRemaining = startDuration;
+        if (PlayerPrefs.HasKey("LightLvl"))
+        {
+            startDuration = PlayerPrefs.GetInt("LightLvl") * 30;
+        }
+        else
+        {
+            startDuration = 30;
+            PlayerPrefs.SetInt("LightLvl", 1);
+        }
+        if (PlayerPrefs.HasKey("ElecTurnedOn") && PlayerPrefs.GetString("ElecTurnedOn") == "true")
+        {
+            TurnOn();
+            lightActive = true;
+        }
+        else
+        {
+            lampTurnon = true;
+            lightActive = false;
+            timeRemaining = startDuration;
+        }
     }
 
     // Update is called once per frame
@@ -26,14 +46,12 @@ public class TurnOnLights : MonoBehaviour
     {
         if (Input.GetKeyDown(KeyCode.E))
         {
-            Debug.Log("E");
             if (touchingGene && lightActive == false)
             {
                 TurnOn();
                 lightActive = true;
+                PlayerPrefs.SetString("ElecTurnedOn", "true");
             }
-            else
-                Debug.Log("already turned on");
         }
         if (Input.GetKeyDown(KeyCode.F) && timeRemaining > 0.0f)
         {
@@ -45,16 +63,17 @@ public class TurnOnLights : MonoBehaviour
             timeRemaining -= Time.deltaTime;
             if (timeRemaining <= 0)
             {
+                timeRemaining = 0.0f;
                 lampTurnon = false;
                 pointLight.SetActive(false);
                 audioSource.Play();
             }
         }
+        lightTime.text = "Lumière restante : " + DisplayTime(timeRemaining);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        Debug.Log("enter");
         if (other.tag == "Generator")
         {
             touchingGene = true;
@@ -63,7 +82,6 @@ public class TurnOnLights : MonoBehaviour
 
     private void OnTriggerExit2D(Collider2D other)
     {
-        Debug.Log("exit");
         if (other.tag == "Generator")
         {
             touchingGene = false;
@@ -73,5 +91,13 @@ public class TurnOnLights : MonoBehaviour
     private void TurnOn()
     {
         globalLight.SetActive(true);
+    }
+
+    string DisplayTime(float timeToDisplay)
+    {
+        float minutes = Mathf.FloorToInt(timeToDisplay / 60);
+        float seconds = Mathf.FloorToInt(timeToDisplay % 60);
+
+        return (string.Format("{0:00}:{1:00}", minutes, seconds));
     }
 }
